@@ -99,7 +99,7 @@ public class Main {
             @Override
             public void mouseWheelMoved(MouseWheelEvent e) {
                 if (!ctrlPressed) {
-                    gameSpeed += (gameSpeed > 500 ? 1 : 50) * e.getWheelRotation();
+                    gameSpeed += (gameSpeed > 500 ? 50 : 1) * e.getWheelRotation();
                     if (gameSpeed < 0) {
                         gameSpeed = 0;
                     }
