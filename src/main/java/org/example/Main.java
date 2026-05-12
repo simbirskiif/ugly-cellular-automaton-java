@@ -1,8 +1,34 @@
 package org.example;
 
-import javax.swing.*;
-import java.awt.*;
-import java.awt.event.*;
+import java.awt.Color;
+import java.awt.Graphics;
+import java.awt.MouseInfo;
+import java.awt.Point;
+import java.awt.event.ActionEvent;
+import static java.awt.event.InputEvent.CTRL_MASK;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseWheelEvent;
+import java.awt.event.MouseWheelListener;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.util.HashSet;
+
+import javax.swing.AbstractAction;
+import javax.swing.Action;
+import javax.swing.JComponent;
+import javax.swing.JFileChooser;
+import javax.swing.JFrame;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.KeyStroke;
+import javax.swing.Timer;
+import static javax.swing.WindowConstants.EXIT_ON_CLOSE;
 
 public class Main {
     static JFrame frame;
@@ -38,10 +64,32 @@ public class Main {
                 }
                 g.setColor(Color.ORANGE);
                 for (CellCollection.Cell cell : cells.getCells()) {
-                    g.fillRect(cell.x() * cellSize + cameraPosition.x, cell.y() * cellSize + cameraPosition.y, cellSize, cellSize);
+                    g.fillRect(cell.x() * cellSize + cameraPosition.x, cell.y() * cellSize + cameraPosition.y, cellSize,
+                            cellSize);
                 }
             }
         };
+        Action saveAction = new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                saveToFileDialog(cells.getCells());
+                System.out.println("save");
+            }
+        };
+        Action loadAction = new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                loadFromFileDialog();
+            }
+        };
+        KeyStroke ctrlS = KeyStroke.getKeyStroke(KeyEvent.VK_S, CTRL_MASK);
+        panel.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(ctrlS, "saveAction");
+        panel.getActionMap().put("saveAction", saveAction);
+
+        KeyStroke ctrlL = KeyStroke.getKeyStroke(KeyEvent.VK_L, CTRL_MASK);
+        panel.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(ctrlL, "loadAction");
+        panel.getActionMap().put("loadAction", loadAction);
+
         Point lastPoint = new Point();
         Timer uiTimer = new Timer(7, e -> {
             if (isMouseRightPressed) {
@@ -133,12 +181,45 @@ public class Main {
         panel.setFocusable(true);
         frame.add(panel);
         frame.setSize(800, 600);
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setDefaultCloseOperation(EXIT_ON_CLOSE);
         frame.setTitle("Крутая игра");
         frame.setVisible(true);
 
         uiTimer.start();
         runTimer.start();
 
+    }
+
+    public static void saveToFileDialog(HashSet<CellCollection.Cell> cells) {
+        JFileChooser file = new JFileChooser();
+        int user = file.showSaveDialog(null);
+        if (user != JFileChooser.APPROVE_OPTION)
+            return;
+        try {
+            ObjectOutputStream stream = new ObjectOutputStream(
+                    new FileOutputStream(file.getSelectedFile().getAbsolutePath()));
+            stream.writeObject(cells);
+        } catch (IOException e) {
+            JOptionPane.showMessageDialog(null, "Ошибка сохранения файла: " + e.getMessage(),
+                    "Ошибка", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    public static void loadFromFileDialog() {
+        JFileChooser file = new JFileChooser();
+        int user = file.showOpenDialog(null);
+
+        if (user != JFileChooser.APPROVE_OPTION) {
+            return;
+        }
+
+        try (ObjectInputStream stream = new ObjectInputStream(
+                new FileInputStream(file.getSelectedFile().getAbsolutePath()))) {
+            cells.setCells((HashSet<CellCollection.Cell>) stream.readObject());
+
+        } catch (IOException | ClassNotFoundException e) {
+            JOptionPane.showMessageDialog(null, "Ошибка загрузки файла: " + e.getMessage(),
+                    "Ошибка", JOptionPane.ERROR_MESSAGE);
+        }
     }
 }
